@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { updateLeadField } from '@/app/actions/crm'
 import { Thermometer, ThermometerSnowflake, ThermometerSun, GripVertical, Building2, Phone } from 'lucide-react'
+import { formatPhoneUS } from '@/lib/formatters'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -98,7 +99,7 @@ export default function LeadsBoard({ initialLeads }: { initialLeads: any[] }) {
                                                                 {lead.phone_number && (
                                                                     <div className="flex items-center gap-1.5">
                                                                         <Phone className="h-3 w-3" />
-                                                                        <span>{lead.phone_number}</span>
+                                                                        <span>{formatPhoneUS(lead.phone_number)}</span>
                                                                     </div>
                                                                 )}
                                                             </div>

@@ -22,11 +22,36 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
+    // Accept common Zapier/Facebook/landing-page field names
+    const rawName =
+      body.name ??
+      body.full_name ??
+      body.student_name ??
+      body.contact_person ??
+      (body.first_name || body.last_name
+        ? [body.first_name, body.last_name].filter(Boolean).join(' ')
+        : '')
+    const name = String(rawName || '').trim()
+
+    const rawPhone =
+      body.phone ?? body.phone_number ?? body.mobile ?? body.telephone ?? ''
+    const phone = String(rawPhone || '').replace(/\s/g, '').trim()
+
+    const rawEmail = body.email ?? body.email_address ?? body.mail ?? ''
+    const email = rawEmail ? String(rawEmail).trim() : undefined
+
+    const companyRaw =
+      body.company ??
+      body.company_name ??
+      body.organization ??
+      (name || 'Landing Page')
+    const company = String(companyRaw || '').trim() || (name || 'Landing Page')
+
     const payload: PublicLeadPayload = {
-      company: String(body.company || body.name || body.student_name || '').trim() || 'Landing Page',
-      name: (body.name || body.student_name || body.contact_person) ? String(body.name || body.student_name || body.contact_person).trim() : '',
-      email: body.email ? String(body.email).trim() : undefined,
-      phone: body.phone ? String(body.phone).trim() : '',
+      company,
+      name,
+      email: email || undefined,
+      phone,
       location: body.location ? String(body.location).trim() : '',
       temperature: body.temperature ? String(body.temperature).trim() : undefined,
       source: body.source ? String(body.source).trim() : undefined,

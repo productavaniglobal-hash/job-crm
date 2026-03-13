@@ -14,8 +14,32 @@ const THEME_META: Record<ColorTheme, { icon: React.ElementType; label: string }>
     black: { icon: MoonStar, label: 'Black' },
 }
 
+// Returns null when used outside UIProvider (e.g. during RSC streaming)
+function useUISafe() {
+    try {
+        return useUI()
+    } catch {
+        return null
+    }
+}
+
 export function ThemeToggle() {
-    const { colorTheme, setColorTheme } = useUI()
+    const context = useUISafe()
+
+    if (!context) {
+        return (
+            <button
+                type="button"
+                title="Theme (unavailable)"
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+                <Sun className="w-[18px] h-[18px] text-muted-foreground" />
+                <span className="sr-only">Theme</span>
+            </button>
+        )
+    }
+
+    const { colorTheme, setColorTheme } = context
 
     const currentIndex = THEMES.indexOf(colorTheme)
     const nextIndex = (currentIndex + 1) % THEMES.length

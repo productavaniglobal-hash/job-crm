@@ -15,7 +15,7 @@ import {
     Search, Plus, MoreHorizontal, MessageSquare, Download, Filter, Settings2, X,
     ThermometerSun, Thermometer, ThermometerSnowflake, Calendar as CalendarIcon,
     Upload, ArrowUpDown, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    LayoutGrid, List, ChevronDown, Activity, Mail, Share2
+    LayoutGrid, List, ChevronDown, Activity, Mail, Share2, RefreshCw
 } from "lucide-react"
 import {
     DropdownMenu,
@@ -41,6 +41,7 @@ import {
     addLead, addLeads, bulkDeleteLeads, bulkUpdateLeadStatus, bulkAssignLeads,
     updateLeadField, addDeal, deleteLead, getOrgMembers, forwardLead
 } from '@/app/actions/crm'
+import { syncInteraktData } from '@/app/actions/interakt'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { format, differenceInDays } from 'date-fns'
@@ -56,7 +57,7 @@ import LeadsBoard from './LeadsBoard'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspace } from '@/components/providers/WorkspaceProvider'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, formatPhoneUS } from '@/lib/formatters'
 
 export default function LeadsClient({
     initialLeads,
@@ -121,6 +122,7 @@ export default function LeadsClient({
     // Bulk assign state
     const [bulkAssignUserId, setBulkAssignUserId] = useState('')
     const [orgMembers, setOrgMembers] = useState<any[]>([])
+    const [isInteraktSyncing, setIsInteraktSyncing] = useState(false)
 
     const openForwardDialog = async (lead: any) => {
         setForwardingLead(lead)
@@ -258,6 +260,25 @@ export default function LeadsClient({
         })
     }
 
+    const handleSyncInterakt = async () => {
+        if (isInteraktSyncing) return
+        setIsInteraktSyncing(true)
+        toast.loading('Syncing leads from Interakt...', { id: 'sync-interakt' })
+        try {
+            const res = await syncInteraktData()
+            if (res.success) {
+                const count = (res as { count?: number }).count ?? 0
+                toast.success(`Synced ${count} contacts from Interakt`, { id: 'sync-interakt' })
+            } else {
+                toast.error(res.error || 'Failed to sync from Interakt', { id: 'sync-interakt' })
+            }
+        } catch (error: any) {
+            toast.error(error?.message || 'Unexpected error while syncing from Interakt', { id: 'sync-interakt' })
+        } finally {
+            setIsInteraktSyncing(false)
+        }
+    }
+
     const handleExportCSV = () => {
         const headers = ['Company', 'Contact Person', 'Phone', 'Status', 'Temperature', 'Source', 'Added On']
         const csvContent = [
@@ -265,7 +286,7 @@ export default function LeadsClient({
             ...leads.map(lead => [
                 `"${lead.name || ''}"`,
                 `"${lead.contact_person || ''}"`,
-                `"${lead.phone_number || ''}"`,
+                `"${formatPhoneUS(lead.phone_number || '')}"`,
                 `"${lead.status || ''}"`,
                 `"${lead.temperature || ''}"`,
                 `"${lead.source || ''}"`,
@@ -466,8 +487,16 @@ export default function LeadsClient({
                     {isCoreAdmin && (
                         <>
                             <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleImportCSV} />
-                            <Button onClick={() => fileInputRef.current?.click()} variant="outline" title="CSV with columns: Name, Email, Phone, UTM_Source, UTM_Campaign, UTM_Medium, Full_URL (e.g. from Google Sheet export)" className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium">
-                                <Upload className="mr-2 h-4 w-4" /> Import CSV
+                            <Button onClick={() => fileInputRef.current?.click()} variant="outline" title="Upload CSV exported from Google Sheets. Expected columns: Name, Email, Phone, UTM_Source, UTM_Campaign, UTM_Medium, Full_URL" className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium">
+                                <Upload className="mr-2 h-4 w-4" /> Sync from Google Sheet (CSV)
+                            </Button>
+                            <Button
+                                onClick={handleSyncInterakt}
+                                variant="outline"
+                                disabled={isInteraktSyncing}
+                                className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium"
+                            >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${isInteraktSyncing ? 'animate-spin' : ''}`} /> Sync from Interakt
                             </Button>
                             <Button onClick={handleExportCSV} variant="outline" className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium">
                                 <Download className="mr-2 h-4 w-4" /> Export CSV
@@ -833,7 +862,7 @@ export default function LeadsClient({
                                             <TableCell
                                                 className={`text-slate-500 dark:text-muted-foreground hidden sm:table-cell ${canEdit ? 'cursor-pointer' : ''}`}
                                                 style={{ padding: 'var(--table-cell-padding)' }}
-                                                onDoubleClick={() => canEdit && setEditingCell({ id: lead.id, field: 'phone_number', value: lead.phone_number || '' })}
+                                                onDoubleClick={() => canEdit && setEditingCell({ id: lead.id, field: 'phone_number', value: formatPhoneUS(lead.phone_number || '') })}
                                             >
                                                 {editingCell?.id === lead.id && editingCell?.field === 'phone_number' ? (
                                                     <Input
@@ -845,7 +874,7 @@ export default function LeadsClient({
                                                         onKeyDown={handleKeyDown}
                                                     />
                                                 ) : (
-                                                    lead.phone_number
+                                                    formatPhoneUS(lead.phone_number || '')
                                                 )}
                                             </TableCell>
                                             <TableCell

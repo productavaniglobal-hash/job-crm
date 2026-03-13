@@ -229,16 +229,24 @@ export async function syncInteraktData() {
         for (const candidate of allCustomers) {
             const traits = candidate.traits || {}
             const fullName = traits.name || candidate.full_name || 'WhatsApp Lead'
-            // phone_number in Interakt response is already without country prefix (10-digit)
-            const rawPhone = candidate.phone_number
 
-            if (!rawPhone) continue
+            // Be more forgiving with phone sources & formats (mirrors scripts/sync_interakt_leads.mjs)
+            const phoneFromApi = candidate.phone_number || traits.phone_number || traits.phone
+            if (!phoneFromApi) {
+                continue
+            }
+
+            // Normalise to the 10‑digit format we store in CRM (strip + and leading 91)
+            const normalisedPhone = String(phoneFromApi).replace(/\+/g, '').replace(/^91/, '')
+            if (!normalisedPhone) {
+                continue
+            }
 
             // Find or create lead
             let { data: existingLead } = await supabase
                 .from('leads')
                 .select('id, organization_id')
-                .eq('phone_number', rawPhone)
+                .eq('phone_number', normalisedPhone)
                 .limit(1)
                 .maybeSingle()
 
@@ -250,7 +258,7 @@ export async function syncInteraktData() {
                         organization_id: org.id,
                         name: fullName,
                         contact_person: fullName,
-                        phone_number: rawPhone,
+                        phone_number: normalisedPhone,
                         source: 'WhatsApp',
                         temperature: 'warm'
                     })

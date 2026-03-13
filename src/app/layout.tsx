@@ -20,7 +20,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
+  let user: Awaited<ReturnType<typeof getCurrentUser>> = null
+  try {
+    user = await getCurrentUser()
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Root layout: getCurrentUser failed', e)
+    }
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>

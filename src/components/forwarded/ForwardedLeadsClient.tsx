@@ -14,6 +14,7 @@ import { updateForwardedLeadStatus } from '@/app/actions/crm'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { forwardLead } from '@/app/actions/crm'
+import { formatPhoneUS } from '@/lib/formatters'
 
 const TEMP_COLORS: Record<string, string> = {
     hot: 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400',
@@ -44,7 +45,7 @@ function LeadMiniCard({ lead }: { lead: any }) {
                     <p className="font-semibold text-sm text-slate-900 dark:text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {lead.name}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">{lead.contact_person || lead.phone_number}</p>
+                    <p className="text-xs text-slate-400 truncate">{lead.contact_person || formatPhoneUS(lead.phone_number)}</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                     {lead.temperature && (

@@ -2,15 +2,32 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-import { LayoutDashboard, Users, Share2, Kanban, Bell, Inbox, CheckSquare, LineChart, ClipboardList, History, Settings, BellRing, ChevronLeft, ChevronRight, Zap, Sparkles } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { LayoutDashboard, Users, Share2, Kanban, Bell, Inbox, CheckSquare, LineChart, ClipboardList, History, Settings, BellRing, ChevronLeft, ChevronDown, ChevronRight, Zap, Sparkles, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const navItems = [
+type NavChild = { name: string; href: string }
+type NavItem =
+    | { name: string; href: string; icon: React.ComponentType<{ className?: string }> }
+    | { name: string; href: string; icon: React.ComponentType<{ className?: string }>; children: NavChild[] }
+
+const navItems: NavItem[] = [
     { name: 'Dashboard', href: '/home', icon: LayoutDashboard },
     { name: 'Attendance', href: '/attendance', icon: ClipboardList },
     { name: 'Inbox', href: '/inbox', icon: Inbox },
     { name: 'Leads', href: '/leads', icon: Users },
+    {
+        name: 'Prospects',
+        href: '/prospects/leads',
+        icon: Search,
+        children: [
+            { name: 'Prospect Leads', href: '/prospects/leads' },
+            { name: 'Prospect Companies', href: '/prospects/companies' },
+            { name: 'Signals', href: '/prospects/signals' },
+            { name: 'Anonymous Website Visitors', href: '/prospects/visitors' },
+            { name: 'AI Prospect Search', href: '/prospects/ai-search' },
+        ],
+    },
     { name: 'Pipeline', href: '/deals', icon: Kanban },
     { name: 'Follow-ups', href: '/follow-ups', icon: BellRing },
     { name: 'Tasks', href: '/tasks', icon: CheckSquare },
@@ -24,9 +41,94 @@ const navItems = [
     { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
+function ProspectsNavItem({
+    item,
+    pathname,
+    isCollapsed,
+    isParentActive,
+    expanded,
+    onToggle,
+}: {
+    item: Extract<NavItem, { children: NavChild[] }>
+    pathname: string
+    isCollapsed: boolean
+    isParentActive: boolean
+    expanded: boolean
+    onToggle: () => void
+}) {
+    if (isCollapsed) {
+        return (
+            <li className="relative group">
+                <Link
+                    href={item.children[0].href}
+                    title="Prospects"
+                    className="flex items-center justify-center p-2.5 rounded-xl transition-all relative overflow-hidden text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
+                >
+                    <item.icon className="h-5 w-5 transition-colors duration-200 group-hover:text-blue-500 dark:group-hover:text-blue-400" />
+                </Link>
+            </li>
+        )
+    }
+    return (
+        <li className="relative">
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative overflow-hidden w-full text-left ${isParentActive
+                    ? 'bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold shadow-sm ring-1 ring-blue-500/20'
+                    : 'text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+            >
+                <div className="relative z-10 shrink-0">
+                    <item.icon className="h-4 w-4 transition-colors duration-200" />
+                </div>
+                <span className="truncate flex-1">{item.name}</span>
+                <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+                </motion.div>
+            </button>
+            <AnimatePresence>
+                {expanded && (
+                    <motion.ul
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden pl-4 mt-0.5 space-y-0.5 border-l border-slate-200/60 dark:border-white/10 ml-3"
+                    >
+                        {item.children.map((child) => {
+                            const isChildActive = pathname.startsWith(child.href)
+                            return (
+                                <li key={child.href}>
+                                    <Link
+                                        href={child.href}
+                                        className={`flex items-center gap-2 py-2 px-2 rounded-lg text-sm transition-colors ${isChildActive
+                                            ? 'bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold'
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                                            }`}
+                                    >
+                                        {isChildActive && (
+                                            <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                                        )}
+                                        <span className="truncate">{child.name}</span>
+                                    </Link>
+                                </li>
+                            )
+                        })}
+                    </motion.ul>
+                )}
+            </AnimatePresence>
+        </li>
+    )
+}
+
 export function Sidebar({ workspaceName = 'Workspace' }: { workspaceName?: string }) {
     const pathname = usePathname()
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const [prospectsExpanded, setProspectsExpanded] = useState(false)
+    useEffect(() => {
+        if (pathname.startsWith('/prospects')) setProspectsExpanded(true)
+    }, [pathname])
 
     return (
         <motion.aside
@@ -78,9 +180,27 @@ export function Sidebar({ workspaceName = 'Workspace' }: { workspaceName?: strin
 
                 <ul className="grid gap-1.5 relative z-10 w-full">
                     {navItems.map((item) => {
-                        const isActive = item.href === '/home'
-                            ? pathname === '/home'
-                            : pathname.startsWith(item.href)
+                        const hasChildren = 'children' in item && item.children?.length
+                        const isParentActive = hasChildren && item.children.some((c) => pathname.startsWith(c.href))
+                        const isActive = hasChildren
+                            ? false
+                            : item.href === '/home'
+                                ? pathname === '/home'
+                                : pathname.startsWith(item.href)
+
+                        if (hasChildren && item.children) {
+                            return (
+                                <ProspectsNavItem
+                                    key={item.name}
+                                    item={item}
+                                    pathname={pathname}
+                                    isCollapsed={isCollapsed}
+                                    isParentActive={!!isParentActive}
+                                    expanded={prospectsExpanded}
+                                    onToggle={() => setProspectsExpanded((p) => !p)}
+                                />
+                            )
+                        }
 
                         return (
                             <li key={item.name} className="relative group">
@@ -100,19 +220,15 @@ export function Sidebar({ workspaceName = 'Workspace' }: { workspaceName?: strin
                                         : 'text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                 >
-                                    {/* Hover highlight effect */}
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-transparent opacity-0 group-hover:via-blue-500/5 dark:group-hover:via-blue-400/10 transition-opacity duration-300" />
-
                                     <div className="relative z-10 shrink-0">
                                         <item.icon
                                             className={`${isCollapsed ? 'h-5 w-5' : 'h-4 w-4'} transition-colors duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'group-hover:text-blue-500 dark:group-hover:text-blue-400'}`}
                                         />
-                                        {/* Glow effect under active icon */}
                                         {isActive && (
                                             <div className="absolute inset-0 bg-blue-500 blur-md opacity-40 rounded-full" />
                                         )}
                                     </div>
-
                                     <AnimatePresence mode="wait">
                                         {!isCollapsed && (
                                             <motion.span

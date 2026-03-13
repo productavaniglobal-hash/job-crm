@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import { sendWhatsAppMessage, getMessages } from '@/app/actions/interakt'
 import { useEffect } from 'react'
 import { useWorkspace } from '@/components/providers/WorkspaceProvider'
+import { formatPhoneUS } from '@/lib/formatters'
 
 export default function LeadDetailClient({
     lead,
@@ -261,7 +262,7 @@ export default function LeadDetailClient({
                         </h1>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> {lead.contact_person || 'No Contact'}</span>
-                            <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {lead.phone_number || 'No Phone'}</span>
+                            <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {formatPhoneUS(lead.phone_number) || 'No Phone'}</span>
                         </div>
                     </div>
                 </div>
@@ -386,7 +387,7 @@ export default function LeadDetailClient({
                                     <div className="grid grid-cols-3 gap-4 border-b dark:border-border pb-4">
                                         <div className="col-span-1 text-sm text-slate-500 dark:text-muted-foreground">Phone Number</div>
                                         <div className="col-span-2 text-sm font-medium text-slate-900 dark:text-foreground flex items-center gap-2">
-                                            <Phone className="h-3.5 w-3.5 text-slate-400" /> {lead.phone_number || '-'}
+                                            <Phone className="h-3.5 w-3.5 text-slate-400" /> {formatPhoneUS(lead.phone_number) || '-'}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 border-b dark:border-border pb-4">
@@ -681,7 +682,7 @@ export default function LeadDetailClient({
                                         {/* WHATSAPP */}
                                         <TabsContent value="whatsapp" className="m-0 space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <p className="text-xs text-slate-500">Opens WhatsApp Web with {lead.phone_number || 'this lead'} pre-filled.</p>
+                                                <p className="text-xs text-slate-500">Opens WhatsApp Web with {formatPhoneUS(lead.phone_number) || 'this lead'} pre-filled.</p>
                                                 <Select onValueChange={(val) => { const t = WA_TEMPLATES.find(t => t.label === val); if (t) setWaText(t.body) }}>
                                                     <SelectTrigger className="w-auto h-8 text-xs">
                                                         <SelectValue placeholder="Use Template" />
