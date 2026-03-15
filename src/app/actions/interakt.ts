@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 const INTERAKT_API_KEY = process.env.INTERAKT_API_KEY
+const INTERAKT_FB_TEMPLATE_NAME = process.env.INTERAKT_FB_TEMPLATE_NAME
+const INTERAKT_FB_TEMPLATE_LANG = process.env.INTERAKT_FB_TEMPLATE_LANG || 'en'
 
 export async function sendWhatsAppMessage(
     leadId: string, 
@@ -137,6 +139,139 @@ export async function sendWhatsAppMessage(
         return { success: true, message }
     } catch (e: any) {
         console.error('sendWhatsAppMessage error:', e)
+        return { success: false, error: e.message }
+    }
+}
+
+export async function sendWhatsAppTemplateForLead(
+    leadId: string,
+    templateName?: string,
+    bodyValues: string[] = []
+) {
+    try {
+        const supabase = await createClient()
+
+        const effectiveTemplate = templateName || INTERAKT_FB_TEMPLATE_NAME
+        if (!effectiveTemplate) {
+            console.error('sendWhatsAppTemplateForLead: template name is not configured')
+            return { success: false, error: 'Template name not configured' }
+        }
+
+        const { data: lead, error: leadError } = await supabase
+            .from('leads')
+            .select('phone_number, organization_id')
+            .eq('id', leadId)
+            .single()
+
+        if (leadError || !lead) throw new Error('Lead not found')
+
+        let { data: conversation } = await supabase
+            .from('conversations')
+            .select('id')
+            .eq('lead_id', leadId)
+            .maybeSingle()
+
+        if (!conversation || !conversation.id) {
+            const { data: newConv, error: createConvError } = await supabase
+                .from('conversations')
+                .insert({
+                    organization_id: lead.organization_id,
+                    lead_id: leadId,
+                    unread_count: 0,
+                })
+                .select()
+                .single()
+
+            if (createConvError) throw createConvError
+            if (!newConv) throw new Error('Failed to create conversation')
+            conversation = newConv
+        }
+
+        let interaktMessageId: string | null = null
+
+        if (!INTERAKT_API_KEY) {
+            return { success: false, error: 'Interakt API Key missing' }
+        }
+
+        // Reuse the same phone normalisation as sendWhatsAppMessage
+        let raw = (lead.phone_number || '').replace(/\+/g, '')
+        let targetPhone = raw
+
+        if (raw.length === 10) {
+            const usAreaCodes = ['562', '631', '267', '980', '240', '484', '864']
+            const isUS = usAreaCodes.some((code) => raw.startsWith(code))
+            targetPhone = (isUS ? '1' : '91') + raw
+        }
+
+        const payload: any = {
+            fullPhoneNumber: '+' + targetPhone,
+            type: 'Template',
+            templateName: effectiveTemplate,
+            languageCode: INTERAKT_FB_TEMPLATE_LANG,
+            bodyValues,
+        }
+
+        try {
+            const response = await fetch('https://api.interakt.ai/v1/public/message/', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${INTERAKT_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            })
+
+            const result = await response.json()
+            if (result.result) {
+                interaktMessageId = result.id
+            } else {
+                console.error('Interakt Template API Error:', result)
+                return { success: false, error: result.message || 'Interakt template API failed' }
+            }
+        } catch (error: any) {
+            console.error('Failed to call Interakt Template API:', error)
+            return { success: false, error: error.message }
+        }
+
+        if (!conversation || !conversation.id) throw new Error('Conversation not available')
+
+        const previewContent = `Template: ${effectiveTemplate}`
+
+        const { data: message, error: msgError } = await supabase
+            .from('messages')
+            .insert({
+                conversation_id: conversation.id,
+                organization_id: lead.organization_id,
+                sender_type: 'agent',
+                message_type: 'text',
+                content: previewContent,
+                media_url: null,
+                interakt_message_id: interaktMessageId,
+                status: interaktMessageId ? 'sent' : 'failed',
+            })
+            .select()
+            .single()
+
+        if (msgError) return { success: false, error: 'Database error: ' + msgError.message }
+
+        await supabase
+            .from('conversations')
+            .update({ last_customer_message_at: new Date().toISOString() })
+            .eq('id', conversation.id)
+
+        await supabase.from('activity_logs').insert({
+            organization_id: lead.organization_id,
+            action: 'whatsapp',
+            details: `Sent WhatsApp template: ${effectiveTemplate}`,
+            lead_id: leadId,
+        })
+
+        revalidatePath(`/leads/${leadId}`)
+        revalidatePath('/inbox')
+
+        return { success: true, message }
+    } catch (e: any) {
+        console.error('sendWhatsAppTemplateForLead error:', e)
         return { success: false, error: e.message }
     }
 }

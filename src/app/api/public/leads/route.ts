@@ -4,6 +4,7 @@ import {
   createLeadRecord,
   PublicLeadPayload,
 } from '@/lib/create-lead-record'
+import { sendWhatsAppTemplateForLead } from '@/app/actions/interakt'
 
 // Allow longer run for Supabase + routing (e.g. when running locally or cold start)
 export const maxDuration = 30
@@ -108,6 +109,23 @@ export async function POST(req: NextRequest) {
         { success: false, error: result.error },
         { status: 400, headers: corsHeaders }
       )
+    }
+
+    // Fire-and-forget: send WhatsApp welcome template for Facebook leads
+    const sourceLower = (payload.source || '').toLowerCase()
+    if (sourceLower === 'facebook lead ads' && payload.phone) {
+      try {
+        await sendWhatsAppTemplateForLead(
+          (result as any).data.id,
+          undefined,
+          [
+            payload.name || payload.company,
+            payload.campaign || '',
+          ]
+        )
+      } catch (e) {
+        console.error('Failed to send Facebook welcome WhatsApp template', e)
+      }
     }
 
     return NextResponse.json({

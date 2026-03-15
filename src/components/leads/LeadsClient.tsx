@@ -494,9 +494,10 @@ export default function LeadsClient({
                                 onClick={handleSyncInterakt}
                                 variant="outline"
                                 disabled={isInteraktSyncing}
+                                title="Pull contacts from Interakt. Leads from Zapier and Make are added automatically when their scenarios send to the CRM API."
                                 className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium"
                             >
-                                <RefreshCw className={`mr-2 h-4 w-4 ${isInteraktSyncing ? 'animate-spin' : ''}`} /> Sync from Interakt
+                                <RefreshCw className={`mr-2 h-4 w-4 ${isInteraktSyncing ? 'animate-spin' : ''}`} /> Sync from Interakt, Zapier & Make
                             </Button>
                             <Button onClick={handleExportCSV} variant="outline" className="bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border-gray-200/60 dark:border-white/10 text-slate-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm rounded-xl font-medium">
                                 <Download className="mr-2 h-4 w-4" /> Export CSV
