@@ -3,20 +3,62 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Share2, Kanban, Bell, Inbox, CheckSquare, LineChart, ClipboardList, History, Settings, BellRing, ChevronLeft, ChevronDown, ChevronRight, Zap, Sparkles, Search } from 'lucide-react'
+import { LayoutDashboard, Users, Share2, Bell, LineChart, ClipboardList, History, Settings, BellRing, ChevronLeft, ChevronDown, Zap, Sparkles, Search, LibraryBig, PhoneCall, Send, Workflow } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type NavChild = { name: string; href: string }
 type NavItem =
-    | { name: string; href: string; icon: React.ComponentType<{ className?: string }> }
-    | { name: string; href: string; icon: React.ComponentType<{ className?: string }>; children: NavChild[] }
+    | { key: string; name: string; href: string; icon: React.ComponentType<{ className?: string }> }
+    | { key: string; name: string; href: string; icon: React.ComponentType<{ className?: string }>; children: NavChild[] }
 
 const navItems: NavItem[] = [
-    { name: 'Dashboard', href: '/home', icon: LayoutDashboard },
-    { name: 'Attendance', href: '/attendance', icon: ClipboardList },
-    { name: 'Inbox', href: '/inbox', icon: Inbox },
-    { name: 'Leads', href: '/leads', icon: Users },
+    { key: 'dashboard', name: 'Dashboard', href: '/home', icon: LayoutDashboard },
+    { key: 'attendance', name: 'Attendance', href: '/attendance', icon: ClipboardList },
     {
+        key: 'engage',
+        name: 'Engage',
+        href: '/engage/inbox',
+        icon: Send,
+        children: [
+            { name: 'Inbox', href: '/engage/inbox' },
+            { name: 'Sequences', href: '/engage/sequences' },
+            { name: 'Campaigns', href: '/engage/campaigns' },
+            { name: 'Templates', href: '/engage/templates' },
+            { name: 'Conversations', href: '/engage/conversations' },
+            { name: 'Analytics', href: '/engage/analytics' },
+            { name: 'Settings', href: '/engage/settings' },
+        ],
+    },
+    { key: 'workflows', name: 'Workflows', href: '/workflows', icon: Workflow },
+    {
+        key: 'crm',
+        name: 'CRM',
+        href: '/contacts',
+        icon: Users,
+        children: [
+            { name: 'Contacts', href: '/contacts' },
+            { name: 'Leads', href: '/leads' },
+            { name: 'Companies', href: '/companies' },
+            { name: 'Customers', href: '/customers' },
+            { name: 'Deals', href: '/deals' },
+            { name: 'Lists', href: '/lists' },
+            { name: 'CRM Tasks', href: '/tasks' },
+        ],
+    },
+    {
+        key: 'dialer',
+        name: 'Dialer',
+        href: '/dialer',
+        icon: PhoneCall,
+        children: [
+            { name: 'Workspace', href: '/dialer' },
+            { name: 'Dashboard', href: '/dialer/dashboard' },
+            { name: 'Recordings', href: '/dialer/recordings' },
+        ],
+    },
+    { key: 'content', name: 'Content Library', href: '/content', icon: LibraryBig },
+    {
+        key: 'prospects',
         name: 'Prospects',
         href: '/prospects/leads',
         icon: Search,
@@ -28,20 +70,18 @@ const navItems: NavItem[] = [
             { name: 'AI Prospect Search', href: '/prospects/ai-search' },
         ],
     },
-    { name: 'Pipeline', href: '/deals', icon: Kanban },
-    { name: 'Follow-ups', href: '/follow-ups', icon: BellRing },
-    { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-    { name: 'Rep Monitor', href: '/reps', icon: Users },
-    { name: 'Analytics', href: '/analytics', icon: LineChart },
-    { name: 'Forwarded', href: '/forwarded', icon: Share2 },
-    { name: 'Notifications', href: '/notifications', icon: Bell },
-    { name: 'Lead Logs', href: '/lead-logs', icon: History },
-    { name: 'Activity Log', href: '/activity-log', icon: History },
-    { name: 'Automations', href: '/settings/automations', icon: Zap },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { key: 'followups', name: 'Follow-ups', href: '/follow-ups', icon: BellRing },
+    { key: 'reps', name: 'Rep Monitor', href: '/reps', icon: Users },
+    { key: 'analytics', name: 'Analytics', href: '/analytics', icon: LineChart },
+    { key: 'forwarded', name: 'Forwarded', href: '/forwarded', icon: Share2 },
+    { key: 'notifications', name: 'Notifications', href: '/notifications', icon: Bell },
+    { key: 'leadlogs', name: 'Lead Logs', href: '/lead-logs', icon: History },
+    { key: 'activity', name: 'Activity Log', href: '/activity-log', icon: History },
+    { key: 'automations', name: 'Automations', href: '/settings/automations', icon: Zap },
+    { key: 'settings', name: 'Settings', href: '/settings', icon: Settings },
 ]
 
-function ProspectsNavItem({
+function CollapsibleNavItem({
     item,
     pathname,
     isCollapsed,
@@ -61,7 +101,7 @@ function ProspectsNavItem({
             <li className="relative group">
                 <Link
                     href={item.children[0].href}
-                    title="Prospects"
+                    title={item.name}
                     className="flex items-center justify-center p-2.5 rounded-xl transition-all relative overflow-hidden text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                 >
                     <item.icon className="h-5 w-5 transition-colors duration-200 group-hover:text-blue-500 dark:group-hover:text-blue-400" />
@@ -125,9 +165,24 @@ function ProspectsNavItem({
 export function Sidebar({ workspaceName = 'Workspace' }: { workspaceName?: string }) {
     const pathname = usePathname()
     const [isCollapsed, setIsCollapsed] = useState(false)
-    const [prospectsExpanded, setProspectsExpanded] = useState(false)
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
     useEffect(() => {
-        if (pathname.startsWith('/prospects')) setProspectsExpanded(true)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExpandedSections((prev) => ({
+            ...prev,
+            crm:
+                (prev.crm ?? false) ||
+                pathname.startsWith('/contacts') ||
+                pathname.startsWith('/leads') ||
+                pathname.startsWith('/companies') ||
+                pathname.startsWith('/customers') ||
+                pathname.startsWith('/deals') ||
+                pathname.startsWith('/lists') ||
+                pathname.startsWith('/tasks'),
+            dialer: (prev.dialer ?? false) || pathname.startsWith('/dialer'),
+            prospects: (prev.prospects ?? false) || pathname.startsWith('/prospects'),
+            engage: (prev.engage ?? false) || pathname.startsWith('/engage'),
+        }))
     }, [pathname])
 
     return (
@@ -190,20 +245,20 @@ export function Sidebar({ workspaceName = 'Workspace' }: { workspaceName?: strin
 
                         if (hasChildren && item.children) {
                             return (
-                                <ProspectsNavItem
-                                    key={item.name}
+                                <CollapsibleNavItem
+                                    key={item.key}
                                     item={item}
                                     pathname={pathname}
                                     isCollapsed={isCollapsed}
                                     isParentActive={!!isParentActive}
-                                    expanded={prospectsExpanded}
-                                    onToggle={() => setProspectsExpanded((p) => !p)}
+                                    expanded={!!expandedSections[item.key]}
+                                    onToggle={() => setExpandedSections((p) => ({ ...p, [item.key]: !p[item.key] }))}
                                 />
                             )
                         }
 
                         return (
-                            <li key={item.name} className="relative group">
+                            <li key={item.key} className="relative group">
                                 {isActive && !isCollapsed && (
                                     <motion.div
                                         layoutId="activeTab"

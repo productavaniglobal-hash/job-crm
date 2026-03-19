@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import {
     Table,
     TableBody,
@@ -50,7 +50,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { DateRange } from "react-day-picker"
-import { useRef } from "react"
 import Papa from "papaparse"
 import { Checkbox } from "@/components/ui/checkbox"
 import LeadsBoard from './LeadsBoard'
@@ -110,6 +109,11 @@ export default function LeadsClient({
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
     const [editingCell, setEditingCell] = useState<{ id: string, field: string, value: string } | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        setSearchQuery(searchParams?.q || '')
+    }, [searchParams?.q])
 
     // Forward lead state
     const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
@@ -193,7 +197,23 @@ export default function LeadsClient({
     }, [date, pathname, router])
 
 
-    const updateFilters = (key: string, value: string) => {
+    const navigateWithParams = (params: URLSearchParams, mode: 'push' | 'replace' = 'push') => {
+        const nextQuery = params.toString()
+        const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname
+        const currentQuery = window.location.search.replace(/^\?/, '')
+        const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname
+
+        if (nextUrl === currentUrl) return
+
+        if (mode === 'replace') {
+            router.replace(nextUrl)
+            return
+        }
+
+        router.push(nextUrl)
+    }
+
+    const updateFilters = (key: string, value: string, mode: 'push' | 'replace' = 'push') => {
         const params = new URLSearchParams(window.location.search)
         if (
             value &&
@@ -210,7 +230,7 @@ export default function LeadsClient({
         }
         // Reset to first page when filters change
         if (key !== 'page') params.set('page', '1')
-        router.push(`${pathname}?${params.toString()}`)
+        navigateWithParams(params, mode)
     }
 
     const currentPage = parseInt(searchParams?.page || '1')
@@ -223,6 +243,10 @@ export default function LeadsClient({
     }
 
     const clearFilters = () => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+            searchTimeoutRef.current = null
+        }
         setSearchQuery('')
         setActiveTab('all')
         setStatusFilter('All Statuses')
@@ -307,8 +331,23 @@ export default function LeadsClient({
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value
         setSearchQuery(val)
-        setTimeout(() => updateFilters('q', val), 500)
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
+
+        searchTimeoutRef.current = setTimeout(() => {
+            updateFilters('q', val, 'replace')
+            searchTimeoutRef.current = null
+        }, 300)
     }
+
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
+            }
+        }
+    }, [])
 
     async function handleAction(formData: FormData) {
         toast.loading('Processing...', { id: 'save-lead' })
@@ -1254,4 +1293,3 @@ export default function LeadsClient({
         </div>
     )
 }
-

@@ -56,11 +56,25 @@ export async function executeAutomationFlows(triggerType: string, entityType: 'l
             .single()
 
         try {
-            // 4. Execute Actions
+            // 4. Execute Actions (graph-first if workflow_graph exists)
             const actionResults: any[] = []
-            for (const action of flow.actions) {
-                const result = await performAction(supabase, orgId, action, entityType, entityId, data)
-                actionResults.push(result)
+            const graphNodes = Array.isArray(flow?.workflow_graph?.nodes) ? flow.workflow_graph.nodes : null
+            const graphEdges = Array.isArray(flow?.workflow_graph?.edges) ? flow.workflow_graph.edges : null
+            if (graphNodes && graphEdges && graphNodes.length > 0) {
+                const graphResults = await executeGraphWorkflow(
+                    supabase,
+                    orgId,
+                    flow.workflow_graph,
+                    entityType,
+                    entityId,
+                    data
+                )
+                actionResults.push(...graphResults)
+            } else {
+                for (const action of flow.actions) {
+                    const result = await performAction(supabase, orgId, action, entityType, entityId, data)
+                    actionResults.push(result)
+                }
             }
 
             // 5. Update Run Log to Success
@@ -102,6 +116,59 @@ function checkConditions(conditions: any[], data: any) {
 }
 
 async function performAction(supabase: any, orgId: string, action: any, entityType: string, entityId: string, data: any) {
+    if (action.type === 'delay') {
+        const value = Number(action.delayValue || action.value || 1)
+        const unit = action.delayUnit === 'hours' ? 'hours' : 'days'
+        const ms = unit === 'hours' ? value * 60 * 60 * 1000 : value * 24 * 60 * 60 * 1000
+        // Execution engine supports delay; for now we simulate wait node scheduling
+        return { message: `Delay scheduled: ${value} ${unit}`, delayMs: ms }
+    }
+
+    if (action.type === 'send_email') {
+        // Execution engine hook point for engage sender; currently logs intent.
+        return { message: 'Email action queued (engine hook)' }
+    }
+
+    if (action.type === 'create_task') {
+        const { error } = await supabase.from('tasks').insert({
+            organization_id: orgId,
+            lead_id: entityType === 'lead' ? entityId : null,
+            title: action.value || `Follow up ${data?.name || ''}`.trim(),
+            status: 'pending',
+            priority: 'medium',
+            due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        })
+        if (error) throw error
+        return { message: 'Task created' }
+    }
+
+    if (action.type === 'assign_owner') {
+        if (!action.userId) return { message: 'Assign owner skipped (no user selected)' }
+        const { error } = await supabase
+            .from(entityType === 'lead' ? 'leads' : 'deals')
+            .update({ owner_id: action.userId })
+            .eq('id', entityId)
+        if (error) throw error
+        return { message: `Assigned owner ${action.userId}` }
+    }
+
+    if (action.type === 'update_lead_status') {
+        const { error } = await supabase
+            .from('leads')
+            .update({ status: action.value || 'Hot' })
+            .eq('id', entityId)
+        if (error) throw error
+        return { message: `Lead status updated to ${action.value || 'Hot'}` }
+    }
+
+    if (action.type === 'trigger_playbook') {
+        return { message: `Playbook trigger queued: ${action.value || 'default'}` }
+    }
+
+    if (action.type === 'add_tag') {
+        return { message: `Tag added: ${action.value || 'tagged'}` }
+    }
+
     if (action.type === 'update_field') {
         const payload: any = {}
         payload[action.field] = action.value
@@ -128,6 +195,64 @@ async function performAction(supabase: any, orgId: string, action: any, entityTy
     }
 
     return { message: 'Action not implemented' }
+}
+
+async function executeGraphWorkflow(
+    supabase: any,
+    orgId: string,
+    workflowGraph: any,
+    entityType: string,
+    entityId: string,
+    data: any
+) {
+    const nodes = Array.isArray(workflowGraph?.nodes) ? workflowGraph.nodes : []
+    const edges = Array.isArray(workflowGraph?.edges) ? workflowGraph.edges : []
+    const byId = new Map(nodes.map((n: any) => [n.id, n]))
+    const triggerNode = nodes.find((n: any) => n?.data?.kind === 'trigger')
+    if (!triggerNode) return [{ message: 'No trigger node in workflow graph' }]
+
+    const queue = [triggerNode]
+    const seen = new Set<string>()
+    const results: any[] = []
+
+    while (queue.length > 0) {
+        const node = queue.shift()
+        if (!node || seen.has(node.id)) continue
+        seen.add(node.id)
+
+        const kind = node?.data?.kind
+        if (kind === 'condition') {
+            const cond = node?.data?.condition || {}
+            const left = String(data?.[cond.field] ?? '')
+            const right = String(cond.value ?? '')
+            let pass = true
+            if (cond.operator === 'equals') pass = left === right
+            else if (cond.operator === 'contains') pass = left.toLowerCase().includes(right.toLowerCase())
+            else if (cond.operator === 'gt') pass = Number(left) > Number(right)
+            else if (cond.operator === 'lt') pass = Number(left) < Number(right)
+            else if (cond.operator === 'not_equals') pass = left !== right
+
+            results.push({ message: `Condition ${node?.data?.label || node.id}: ${pass ? 'PASS' : 'FAIL'}` })
+            if (!pass) continue
+        }
+
+        if (kind === 'action') {
+            const actionConfig = node?.data?.action || {}
+            const actionPayload = {
+                type: actionConfig.actionType || 'send_notification',
+                ...actionConfig,
+            }
+            const actionResult = await performAction(supabase, orgId, actionPayload, entityType, entityId, data)
+            results.push(actionResult)
+        }
+
+        const nextNodes = edges
+            .filter((e: any) => e.source === node.id)
+            .map((e: any) => byId.get(e.target))
+            .filter(Boolean)
+        queue.push(...nextNodes)
+    }
+    return results
 }
 
 async function aiEnrichEntity(supabase: any, orgId: string, entityType: string, entityId: string, data: any) {

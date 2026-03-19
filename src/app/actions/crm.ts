@@ -846,6 +846,534 @@ export async function getOrgMembers() {
   return data
 }
 
+type SearchParams = { q?: string }
+
+function logSupabaseError(context: string, error: unknown) {
+  // PostgrestError is not always serializable; log known fields safely.
+  const e = error as any
+  const summary = {
+    message: e?.message,
+    details: e?.details,
+    hint: e?.hint,
+    code: e?.code,
+    status: e?.status,
+  }
+  console.error(context, summary)
+}
+
+function isMissingRelation(error: unknown) {
+  const e = error as any
+  // Postgres undefined_table
+  return e?.code === '42P01' || (typeof e?.message === 'string' && e.message.toLowerCase().includes('does not exist'))
+}
+
+export async function getCompanies(params: SearchParams = {}) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return []
+
+  let query = supabase
+    .from('companies')
+    .select('*')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+
+  if (params.q) {
+    query = query.or(`name.ilike.%${params.q}%,email.ilike.%${params.q}%,phone.ilike.%${params.q}%`)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    if (isMissingRelation(error)) {
+      // Likely the new migration hasn't been applied yet.
+      logSupabaseError('Companies table missing. Run latest Supabase migrations.', error)
+      return []
+    }
+    logSupabaseError('Error fetching companies:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function createCompany(formData: FormData) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const payload = {
+    organization_id: orgId,
+    name: String(formData.get('name') || '').trim(),
+    website: String(formData.get('website') || '').trim() || null,
+    industry: String(formData.get('industry') || '').trim() || null,
+    phone: String(formData.get('phone') || '').trim() || null,
+    email: String(formData.get('email') || '').trim() || null,
+    address: String(formData.get('address') || '').trim() || null,
+    notes: String(formData.get('notes') || '').trim() || null,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (!payload.name) return { error: 'Company name is required' }
+
+  const { error } = await supabase.from('companies').insert(payload)
+  if (error) return { error: error.message }
+
+  revalidatePath('/companies')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function updateCompany(companyId: string, updates: Record<string, unknown>) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase
+    .from('companies')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', companyId)
+    .eq('organization_id', orgId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/companies')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteCompany(companyId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase.from('companies').delete().eq('id', companyId).eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/companies')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function getContacts(params: SearchParams = {}) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return []
+
+  let query = supabase
+    .from('contacts')
+    .select('*, companies(id, name)')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+
+  if (params.q) {
+    query = query.or(`name.ilike.%${params.q}%,email.ilike.%${params.q}%,phone.ilike.%${params.q}%`)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    if (isMissingRelation(error)) {
+      logSupabaseError('Contacts table missing. Run latest Supabase migrations.', error)
+      return []
+    }
+    logSupabaseError('Error fetching contacts:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function createContact(formData: FormData) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const payload = {
+    organization_id: orgId,
+    company_id: String(formData.get('company_id') || '').trim() || null,
+    name: String(formData.get('name') || '').trim(),
+    email: String(formData.get('email') || '').trim() || null,
+    phone: String(formData.get('phone') || '').trim() || null,
+    title: String(formData.get('title') || '').trim() || null,
+    notes: String(formData.get('notes') || '').trim() || null,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (!payload.name) return { error: 'Contact name is required' }
+
+  const { error } = await supabase.from('contacts').insert(payload)
+  if (error) return { error: error.message }
+
+  revalidatePath('/contacts')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function updateContact(contactId: string, updates: Record<string, unknown>) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase
+    .from('contacts')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', contactId)
+    .eq('organization_id', orgId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/contacts')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteContact(contactId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase.from('contacts').delete().eq('id', contactId).eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/contacts')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function getCustomers(params: SearchParams = {}) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return []
+
+  let query = supabase
+    .from('customers')
+    .select('*, companies(id, name), contacts(id, name, email, phone), leads(id, name)')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+
+  if (params.q) {
+    query = query.or(`status.ilike.%${params.q}%,notes.ilike.%${params.q}%`)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.error('Error fetching customers:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function createCustomer(formData: FormData) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const payload = {
+    organization_id: orgId,
+    company_id: String(formData.get('company_id') || '').trim() || null,
+    contact_id: String(formData.get('contact_id') || '').trim() || null,
+    source_lead_id: String(formData.get('source_lead_id') || '').trim() || null,
+    status: String(formData.get('status') || '').trim() || 'active',
+    notes: String(formData.get('notes') || '').trim() || null,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (!payload.company_id && !payload.contact_id) {
+    return { error: 'Customer must have a company or contact' }
+  }
+
+  const { error } = await supabase.from('customers').insert(payload)
+  if (error) return { error: error.message }
+
+  revalidatePath('/customers')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteCustomer(customerId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase.from('customers').delete().eq('id', customerId).eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/customers')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function getLists() {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return []
+
+  const { data, error } = await supabase
+    .from('lists')
+    .select('*, list_members(count)')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching lists:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function createList(formData: FormData) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const name = String(formData.get('name') || '').trim()
+  if (!name) return { error: 'List name is required' }
+
+  const { error } = await supabase.from('lists').insert({
+    organization_id: orgId,
+    name,
+    description: String(formData.get('description') || '').trim() || null,
+    updated_at: new Date().toISOString(),
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath('/lists')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function updateList(listId: string, updates: Record<string, unknown>) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase
+    .from('lists')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', listId)
+    .eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/lists')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteList(listId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase.from('lists').delete().eq('id', listId).eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/lists')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function getListMembers(listId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return []
+
+  const { data, error } = await supabase
+    .from('list_members')
+    .select('*')
+    .eq('organization_id', orgId)
+    .eq('list_id', listId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching list members:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function addListMember(formData: FormData) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const listId = String(formData.get('list_id') || '').trim()
+  const memberType = String(formData.get('member_type') || '').trim()
+  const memberId = String(formData.get('member_id') || '').trim()
+  if (!listId || !memberType || !memberId) return { error: 'list_id, member_type and member_id are required' }
+
+  const { error } = await supabase.from('list_members').insert({
+    organization_id: orgId,
+    list_id: listId,
+    member_type: memberType,
+    member_id: memberId,
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath('/lists')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function removeListMember(memberId: string) {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { error } = await supabase.from('list_members').delete().eq('id', memberId).eq('organization_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/lists')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function backfillContactsAndCompaniesFromLeads() {
+  const supabase = await createClient()
+  const orgId = await getDefaultOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const { isAdmin, error: authError } = await requireAdmin(supabase)
+  if (!isAdmin) return { error: authError || 'Unauthorized' }
+
+  const { data: leads, error: leadsError } = await supabase
+    .from('leads')
+    .select('id, organization_id, name, company, contact_person, email, phone_number, company_id, contact_id')
+    .eq('organization_id', orgId)
+    .or('company_id.is.null,contact_id.is.null')
+    .order('created_at', { ascending: false })
+
+  if (leadsError) return { error: leadsError.message }
+  if (!leads || leads.length === 0) return { success: true, updatedLeads: 0, createdCompanies: 0, createdContacts: 0 }
+
+  const companyMap = new Map<string, string>()
+  const contactMap = new Map<string, string>()
+  let createdCompanies = 0
+  let createdContacts = 0
+  let updatedLeads = 0
+
+  for (const lead of leads) {
+    let companyId = lead.company_id as string | null
+    let contactId = lead.contact_id as string | null
+    const companyName = String(lead.company || lead.name || '').trim()
+    const contactName = String(lead.contact_person || lead.name || '').trim()
+    const email = String(lead.email || '').trim()
+    const phone = String(lead.phone_number || '').trim()
+
+    if (!companyId && companyName) {
+      const key = companyName.toLowerCase()
+      if (companyMap.has(key)) {
+        companyId = companyMap.get(key) || null
+      } else {
+        const { data: existingCompany } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('organization_id', orgId)
+          .ilike('name', companyName)
+          .limit(1)
+          .maybeSingle()
+
+        if (existingCompany?.id) {
+          companyId = existingCompany.id
+          companyMap.set(key, existingCompany.id)
+        } else {
+          const { data: newCompany, error: newCompanyErr } = await supabase
+            .from('companies')
+            .insert({
+              organization_id: orgId,
+              name: companyName,
+              phone: phone || null,
+              email: email || null,
+              updated_at: new Date().toISOString(),
+            })
+            .select('id')
+            .single()
+          if (!newCompanyErr && newCompany?.id) {
+            companyId = newCompany.id
+            companyMap.set(key, newCompany.id)
+            createdCompanies += 1
+          }
+        }
+      }
+    }
+
+    if (!contactId && (contactName || email || phone)) {
+      const key = `${contactName.toLowerCase()}|${email.toLowerCase()}|${phone}`
+      if (contactMap.has(key)) {
+        contactId = contactMap.get(key) || null
+      } else {
+        let existingContact: { id: string } | null = null
+        if (email) {
+          const { data } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('organization_id', orgId)
+            .eq('email', email)
+            .limit(1)
+            .maybeSingle()
+          existingContact = data
+        }
+        if (!existingContact && phone) {
+          const { data } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('organization_id', orgId)
+            .eq('phone', phone)
+            .limit(1)
+            .maybeSingle()
+          existingContact = data
+        }
+        if (!existingContact && contactName) {
+          const { data } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('organization_id', orgId)
+            .ilike('name', contactName)
+            .limit(1)
+            .maybeSingle()
+          existingContact = data
+        }
+
+        if (existingContact?.id) {
+          contactId = existingContact.id
+          contactMap.set(key, existingContact.id)
+        } else {
+          const { data: newContact, error: newContactErr } = await supabase
+            .from('contacts')
+            .insert({
+              organization_id: orgId,
+              company_id: companyId,
+              name: contactName || companyName || 'Unknown Contact',
+              email: email || null,
+              phone: phone || null,
+              updated_at: new Date().toISOString(),
+            })
+            .select('id')
+            .single()
+          if (!newContactErr && newContact?.id) {
+            contactId = newContact.id
+            contactMap.set(key, newContact.id)
+            createdContacts += 1
+          }
+        }
+      }
+    }
+
+    if (companyId || contactId) {
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+          ...(companyId ? { company_id: companyId } : {}),
+          ...(contactId ? { contact_id: contactId } : {}),
+        })
+        .eq('id', lead.id)
+        .eq('organization_id', orgId)
+
+      if (!updateError) updatedLeads += 1
+    }
+  }
+
+  revalidatePath('/leads')
+  revalidatePath('/contacts')
+  revalidatePath('/companies')
+  revalidatePath('/')
+  return { success: true, updatedLeads, createdCompanies, createdContacts }
+}
+
 export async function addTask(formData: FormData) {
   const supabase = await createClient()
   const orgId = await getDefaultOrgId(supabase)
