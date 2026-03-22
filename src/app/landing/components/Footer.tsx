@@ -12,8 +12,7 @@ export default function Footer() {
                         <span className="lp-gradient-text">Start Closing Them.</span>
                     </h2>
                     <p>
-                        Join thousands of sales teams who ditched the spreadsheet and
-                        started selling smarter with Pipero.
+                        Join sales teams who replaced brittle spreadsheets with an agentic AI CRM—where pipeline, people, and AI-driven next steps live in one place.
                     </p>
                     <a href="/login" className="lp-btn lp-btn-primary" style={{ fontSize: 16, padding: '16px 40px' }}>
                         Get Started with Pipero

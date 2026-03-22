@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getSupabasePublicKey } from './env'
 
 export async function createClient() {
     const cookieStore = await cookies()
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabaseAnonKey = getSupabasePublicKey()
 
     if (!supabaseUrl || !supabaseAnonKey) {
         // In production (e.g. Vercel) without env vars, avoid throwing so the app can render

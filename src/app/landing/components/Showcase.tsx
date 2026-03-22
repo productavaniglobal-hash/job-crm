@@ -30,7 +30,7 @@ export default function Showcase() {
                     <p className="lp-section-label">Product</p>
                     <h2 className="lp-section-title">See It in Action</h2>
                     <p className="lp-section-subtitle" style={{ margin: '0 auto' }}>
-                        Every screen designed for speed. Every interaction built for clarity.
+                        Every view is built for speed—and for agents to read CRM context and queue the next action without breaking your team&apos;s flow.
                     </p>
                 </div>
 
@@ -113,7 +113,7 @@ export default function Showcase() {
                                         </div>
                                         <div className="lp-analytics-stat">
                                             <div className="lp-analytics-stat-label">Win Rate</div>
-                                            <div className="lp-analytics-stat-value" style={{ color: '#22c55e' }}>68%</div>
+                                            <div className="lp-analytics-stat-value lp-stat-positive">68%</div>
                                         </div>
                                         <div className="lp-analytics-stat">
                                             <div className="lp-analytics-stat-label">Avg Cycle</div>

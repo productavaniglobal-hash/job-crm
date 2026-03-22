@@ -21,10 +21,11 @@ export default function WhyPipero() {
 
                     <div className="lp-glass-card lp-pillar">
                         <div className="lp-pillar-icon">🤖</div>
-                        <h3>AI Inside, Not Bolted On</h3>
+                        <h3>Agentic AI, native to the CRM</h3>
                         <p>
-                            Lead scoring, follow-up suggestions, and deal insights
-                            are native to the product — not an upsell from a third party.
+                            Agents don&apos;t live in a sidebar—they run on leads, deals, and inboxes
+                            inside Pipero. That&apos;s the difference between generic &ldquo;AI features&rdquo; and
+                            a true agentic AI CRM.
                         </p>
                     </div>
 

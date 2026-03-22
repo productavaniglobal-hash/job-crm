@@ -5,15 +5,17 @@ export default function Hero() {
                 <div className="lp-hero-content">
                     {/* Left — Copy */}
                     <div>
+                        <p className="lp-hero-badge">Agentic AI CRM</p>
                         <h1>
-                            Pipeline,
+                            Where AI agents
                             <br />
-                            <span className="lp-gradient-text">Simplified.</span>
+                            <span className="lp-gradient-text">run your pipeline.</span>
                         </h1>
 
                         <p className="lp-hero-sub">
-                            Pipero helps growing sales teams track deals, automate follow-ups,
-                            and close faster — without the chaos.
+                            Pipero is the CRM where autonomous agents plan next steps, queue follow-ups,
+                            and keep full context on every lead and deal—so reps sell instead of
+                            fighting the tool.
                         </p>
 
                         <div className="lp-hero-ctas">
@@ -49,7 +51,7 @@ export default function Hero() {
                                 </div>
                                 <div className="lp-mockup-card">
                                     <div className="lp-mockup-card-label">Close Rate</div>
-                                    <div className="lp-mockup-card-value" style={{ color: '#22c55e' }}>68%</div>
+                                    <div className="lp-mockup-card-value lp-stat-positive">68%</div>
                                 </div>
 
                                 {/* Pipeline */}
@@ -80,7 +82,7 @@ export default function Hero() {
                                 {/* AI Suggestion */}
                                 <div className="lp-mockup-ai">
                                     <span className="lp-ai-dot" />
-                                    <span>AI: Follow up with Acme Corp — decision expected this week</span>
+                                    <span>CRM agent: 3-step follow-up for Acme Corp — draft ready · step 2/3</span>
                                 </div>
                             </div>
                         </div>

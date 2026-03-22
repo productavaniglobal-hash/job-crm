@@ -8,8 +8,8 @@ export default function Features() {
             ),
         },
         {
-            title: 'AI-Powered Follow-ups',
-            desc: 'Never miss a touchpoint. Pipero suggests the right message at the right time — automatically.',
+            title: 'Agentic AI in the CRM',
+            desc: 'Autonomous agents draft follow-ups, route owners, and run multi-step plays on each lead and deal—so work stays in your CRM, not scattered across tools.',
             icon: (
                 <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12" /><path d="M12 6v6l4 2" /><path d="M2 12h2" /></svg>
             ),
@@ -50,10 +50,13 @@ export default function Features() {
                 <div style={{ textAlign: 'center' }}>
                     <p className="lp-section-label">Features</p>
                     <h2 className="lp-section-title">
-                        Everything Your Pipeline Needs.
+                        Your CRM. Your pipeline.
                         <br />
-                        <span className="lp-gradient-text">Nothing It Doesn&apos;t.</span>
+                        <span className="lp-gradient-text">Agentic AI included.</span>
                     </h2>
+                    <p className="lp-section-subtitle" style={{ margin: '16px auto 0', maxWidth: 560 }}>
+                        One system for records, revenue, and the agents that move deals forward—no bolt-on copilot in another tab.
+                    </p>
                 </div>
 
                 <div className="lp-features-grid">

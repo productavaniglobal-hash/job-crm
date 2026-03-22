@@ -4,9 +4,10 @@ export default function Problem() {
             <div className="lp-container">
                 <div style={{ textAlign: 'center' }}>
                     <p className="lp-section-label">The Problem</p>
-                    <h2 className="lp-section-title">Most CRMs Slow You Down.</h2>
+                    <h2 className="lp-section-title">Most CRMs Weren&apos;t Built to Act.</h2>
                     <p className="lp-section-subtitle" style={{ margin: '0 auto' }}>
-                        Your team spends more time fighting the tool than closing deals.
+                        Traditional CRMs store fields; they don&apos;t run your pipeline. You need an{' '}
+                        <strong>agentic AI CRM</strong>—where autonomous agents work leads and deals in the same place your team already lives.
                     </p>
                 </div>
 
@@ -24,8 +25,9 @@ export default function Problem() {
                         <div className="lp-problem-icon">❌</div>
                         <h3>Too Manual</h3>
                         <p>
-                            If your reps are spending more time logging data than selling, your
-                            CRM is working against you — not for you.
+                            If your reps log every touch by hand while nothing in the CRM can
+                            plan the next step, you&apos;re paying a tax on every deal—an agentic
+                            workflow would run inside the record instead.
                         </p>
                     </div>
 

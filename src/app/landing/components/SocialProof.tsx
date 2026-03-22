@@ -3,7 +3,7 @@ export default function SocialProof() {
         <section className="lp-section lp-social">
             <div className="lp-container">
                 <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                    <p className="lp-section-label">Built for Teams That Move Fast</p>
+                    <p className="lp-section-label">Built for Teams on an Agentic CRM</p>
                 </div>
 
                 {/* Logo Bar */}

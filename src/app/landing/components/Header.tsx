@@ -14,9 +14,12 @@ export default function Header() {
     return (
         <header className="lp-header" style={{ opacity: scrolled ? 1 : 0.95 }}>
             <div className="lp-header-inner">
-                <a href="/" className="lp-logo">
-                    Pipe<span>ro</span>
-                </a>
+                <div className="lp-header-brand">
+                    <a href="/" className="lp-logo">
+                        Pipe<span>ro</span>
+                    </a>
+                    <span className="lp-header-tagline">Agentic AI CRM</span>
+                </div>
 
                 <nav className="lp-nav">
                     <a href="#features">Features</a>
