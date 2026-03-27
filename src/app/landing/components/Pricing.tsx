@@ -1,3 +1,8 @@
+'use client'
+
+import { FadeIn } from './motion/FadeIn'
+import { Stagger, StaggerItem } from './motion/Stagger'
+
 export default function Pricing() {
     const plans = [
         {
@@ -48,6 +53,7 @@ export default function Pricing() {
     return (
         <section id="pricing" className="lp-section">
             <div className="lp-container">
+                <FadeIn premium slide="right">
                 <div style={{ textAlign: 'center' }}>
                     <p className="lp-section-label">Pricing</p>
                     <h2 className="lp-section-title">Simple, Transparent Pricing</h2>
@@ -55,11 +61,12 @@ export default function Pricing() {
                         No hidden fees. No per-feature charges. Pick a plan and start closing.
                     </p>
                 </div>
+                </FadeIn>
 
-                <div className="lp-pricing-grid">
+                <Stagger className="lp-pricing-grid" variant="spring">
                     {plans.map((plan, i) => (
+                        <StaggerItem key={i} hoverLift variant="spring">
                         <div
-                            key={i}
                             className={`lp-glass-card lp-pricing-card ${plan.featured ? 'lp-featured' : ''}`}
                         >
                             {plan.featured && <div className="lp-pricing-badge">Most Popular</div>}
@@ -92,8 +99,9 @@ export default function Pricing() {
                                 {plan.featured ? 'Start Free Trial' : 'Get Started'}
                             </a>
                         </div>
+                        </StaggerItem>
                     ))}
-                </div>
+                </Stagger>
             </div>
         </section>
     )

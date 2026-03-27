@@ -1,4 +1,5 @@
 import LeadCaptureForm from './LeadCaptureForm'
+import { FadeIn } from './motion/FadeIn'
 
 export default function Footer() {
     return (
@@ -6,6 +7,7 @@ export default function Footer() {
             {/* Final CTA + Lead capture */}
             <section className="lp-final-cta">
                 <div className="lp-container">
+                <FadeIn premium slide="right">
                     <h2>
                         Stop Managing Deals.
                         <br />
@@ -22,6 +24,7 @@ export default function Footer() {
                     </a>
                     <p className="lp-lead-cta-sub">Or leave your details and we&apos;ll reach out:</p>
                     <LeadCaptureForm />
+                </FadeIn>
                 </div>
             </section>
 

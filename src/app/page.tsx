@@ -14,6 +14,7 @@ const fontLpDisplay = Fraunces({
     variable: "--font-lp-display",
     display: "swap",
 });
+import LandingDecor from './landing/components/LandingDecor'
 import Header from './landing/components/Header'
 import Hero from './landing/components/Hero'
 import SocialProof from './landing/components/SocialProof'
@@ -29,6 +30,7 @@ export const metadata: Metadata = landingMetadata
 export default function LandingPage() {
     return (
         <div className={`lp-page ${fontLpSans.variable} ${fontLpDisplay.variable}`}>
+            <LandingDecor />
             <Header />
             <Hero />
             <SocialProof />

@@ -1,3 +1,8 @@
+'use client'
+
+import { FadeIn } from './motion/FadeIn'
+import { Stagger, StaggerItem } from './motion/Stagger'
+
 export default function Features() {
     const features = [
         {
@@ -47,6 +52,7 @@ export default function Features() {
     return (
         <section id="features" className="lp-section" style={{ background: 'var(--lp-bg-alt)' }}>
             <div className="lp-container">
+                <FadeIn premium slide="right">
                 <div style={{ textAlign: 'center' }}>
                     <p className="lp-section-label">Features</p>
                     <h2 className="lp-section-title">
@@ -58,16 +64,19 @@ export default function Features() {
                         One system for records, revenue, and the agents that move deals forward—no bolt-on copilot in another tab.
                     </p>
                 </div>
+                </FadeIn>
 
-                <div className="lp-features-grid">
+                <Stagger className="lp-features-grid" variant="spring">
                     {features.map((f, i) => (
-                        <div key={i} className="lp-glass-card lp-feature-card">
+                        <StaggerItem key={i} hoverLift variant="spring">
+                        <div className="lp-glass-card lp-feature-card">
                             <div className="lp-feature-icon">{f.icon}</div>
                             <h3>{f.title}</h3>
                             <p>{f.desc}</p>
                         </div>
+                        </StaggerItem>
                     ))}
-                </div>
+                </Stagger>
             </div>
         </section>
     )

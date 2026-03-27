@@ -1,7 +1,10 @@
+import { FadeIn } from './motion/FadeIn'
+
 export default function SocialProof() {
     return (
         <section className="lp-section lp-social">
             <div className="lp-container">
+                <FadeIn premium slide="left">
                 <div style={{ textAlign: 'center', marginBottom: 48 }}>
                     <p className="lp-section-label">Built for Teams on an Agentic CRM</p>
                 </div>
@@ -61,6 +64,7 @@ export default function SocialProof() {
                         </div>
                     </div>
                 </div>
+                </FadeIn>
             </div>
         </section>
     )

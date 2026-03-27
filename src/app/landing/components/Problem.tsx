@@ -1,7 +1,11 @@
+import { FadeIn } from './motion/FadeIn'
+import { Stagger, StaggerItem } from './motion/Stagger'
+
 export default function Problem() {
     return (
         <section className="lp-section">
             <div className="lp-container">
+                <FadeIn premium slide="left">
                 <div style={{ textAlign: 'center' }}>
                     <p className="lp-section-label">The Problem</p>
                     <h2 className="lp-section-title">Most CRMs Weren&apos;t Built to Act.</h2>
@@ -10,8 +14,10 @@ export default function Problem() {
                         <strong>agentic AI CRM</strong>—where autonomous agents work leads and deals in the same place your team already lives.
                     </p>
                 </div>
+                </FadeIn>
 
-                <div className="lp-problem-cards">
+                <Stagger className="lp-problem-cards" variant="spring">
+                    <StaggerItem hoverLift variant="spring">
                     <div className="lp-glass-card lp-problem-card">
                         <div className="lp-problem-icon">❌</div>
                         <h3>Too Complex</h3>
@@ -20,7 +26,9 @@ export default function Problem() {
                             47 tabs and a consultant to manage your pipeline.
                         </p>
                     </div>
+                    </StaggerItem>
 
+                    <StaggerItem hoverLift variant="spring">
                     <div className="lp-glass-card lp-problem-card">
                         <div className="lp-problem-icon">❌</div>
                         <h3>Too Manual</h3>
@@ -30,7 +38,9 @@ export default function Problem() {
                             workflow would run inside the record instead.
                         </p>
                     </div>
+                    </StaggerItem>
 
+                    <StaggerItem hoverLift variant="spring">
                     <div className="lp-glass-card lp-problem-card">
                         <div className="lp-problem-icon">❌</div>
                         <h3>Too Expensive</h3>
@@ -39,7 +49,8 @@ export default function Problem() {
                             that fits your team — and your budget.
                         </p>
                     </div>
-                </div>
+                    </StaggerItem>
+                </Stagger>
             </div>
         </section>
     )
